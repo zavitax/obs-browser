@@ -347,6 +347,7 @@ void BrowserManager::Impl::BrowserManagerEntry()
 		CefExecuteProcess(mainArgs, app, nullptr);
 		CefInitialize(mainArgs, settings, app, nullptr);
 		CefRunMessageLoop();
+		CefShutdown();
 	});
 
 	while (true) {
