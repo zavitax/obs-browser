@@ -1,16 +1,14 @@
 # Install bundles into plugin directory
-macro(install_external_plugin_bundle target target-bundle-path)
+macro(install_external_plugin_bundle target target-bundle-name)
 	set_target_properties(${target} PROPERTIES
 		PREFIX "")
 
-	install(TARGETS ${target}
-		BUNDLE DESTINATION "${EXTERNAL_PLUGIN_OUTPUT_DIR}/bin")
-
-	get_filename_component(target-bundle-name ${target-bundle-path} NAME)
-
+	install(DIRECTORY ${target}/
+		DESTINATION "${EXTERNAL_PLUGIN_OUTPUT_DIR}/$<CONFIGURATION>/${target}/bin"
+		USE_SOURCE_PERMISSIONS)
 	add_custom_command(TARGET ${target} POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy_directory
-			"$<TARGET_FILE_DIR:${target-bundle-path}"
+			"${target-bundle-name}"
 			"${EXTERNAL_PLUGIN_OUTPUT_DIR}/$<CONFIGURATION>/${target}/bin/${target-bundle-name}"
 		VERBATIM)
 
