@@ -7,22 +7,13 @@ set(CMAKE_INCLUDE_CURRENT_DIR TRUE)
 
 include(BSUtils)
 
-find_package(LibObs REQUIRED)
+find_package(Libobs REQUIRED)
 find_package(CEF REQUIRED)
 
 if(APPLE)
 	find_library(COCOA_FRAMEWORK Cocoa)
 	find_library(APPKIT_FRAMEWORK AppKit)
 	find_library(IOSURFACE_FRAMEWORK IOSurface)
-endif(APPLE)
-
-if (NOT APPLE)
-	# This is needed to load the libraries from a 
-	# separate directory
-	add_library(obs-browser-facade MODULE
-		obs-browser-facade/main.c)
-	target_link_libraries(obs-browser-facade
-		libobs)
 endif()
 
 set(obs-browser_SOURCES
@@ -49,7 +40,6 @@ if (APPLE)
 		obs-browser/apple/client-connection-delegate.mm
 		obs-browser/apple/graphics-helpers.c)
 
-
 	list(APPEND obs-browser_HEADERS
 		shared-apple/cef-logging.h
 		shared-apple/cef-isolation.h
@@ -62,9 +52,7 @@ if (APPLE)
 		obs-browser/apple/client-connection-delegate.h
 		obs-browser/apple/graphics-helpers.h
 		obs-browser/apple/texture-ref.hpp)
-
-else (APPLE)
-	
+else()
 	list(APPEND obs-browser_SOURCES
 		shared/browser-client.cpp
 		shared/browser-task.cpp
@@ -83,21 +71,19 @@ else (APPLE)
 		obs-browser/browser-render-handler.hpp
 		obs-browser/browser-source-base.hpp)
 
-endif(APPLE)
+endif()
 
 set(obs-browser_LIBRARIES
-	libobs)
+	${LIBOBS_LIBRARIES})
 
 if (APPLE)
 	list(APPEND obs-browser_LIBRARIES
 		${IOSURFACE_FRAMEWORK})
-endif(APPLE)
-
+endif()
 
 add_library(obs-browser MODULE 
 	${obs-browser_SOURCES} 
 	${obs-browser_HEADERS})
-
 
 target_include_directories(obs-browser PRIVATE 
 	"obs-browser" 
@@ -106,29 +92,32 @@ target_include_directories(obs-browser PRIVATE
 if (APPLE)
 	target_include_directories(obs-browser PUBLIC 
 		"shared-apple")
-else(APPLE)
-	target_include_directories_system(obs-browser PUBLIC ${CEF_INCLUDE_DIR})
-endif(APPLE)
+else()
+	set(obs-browser_SYSTEM_INCLUDE_DIRS ${CEF_INCLUDE_DIR})
+endif()
+
+target_include_directories_system(obs-browser PUBLIC
+	${obs-browser_SYSTEM_INCLUDE_DIRS}
+	${LIBOBS_INCLUDE_DIRS})
 
 if (APPLE)
 	set_xcode_property(obs-browser CLANG_CXX_LIBRARY "libc++")
-endif(APPLE)
+else()
+	target_include_directories_system(obs-browser PUBLIC
+		${LIBOBS_INCLUDE_DIRS})
+endif()
 
 if (NOT APPLE)
 	list(APPEND obs-browser_LIBRARIES
 		${CEF_LIBRARIES})
-	if (WIN32)
-		list(APPEND obs-browser_LIBRARIES
-			w32-pthreads)
-	endif(WIN32)
-else(NOT APPLE)
+else()
 	list(APPEND obs-browser_LIBRARIES 
 		${COCOA_FRAMEWORK} 
 		${APPKIT_FRAMEWORK}
 		${IOSURFACE_FRAMEWORK})
-endif(NOT APPLE)
+endif()
 
-target_link_libraries(obs-browser 
+target_link_libraries(obs-browser
         ${obs-browser_LIBRARIES})
 
 if(APPLE)
@@ -171,13 +160,13 @@ if(APPLE)
 			CLANG_CXX_LIBRARY "libc++")
 	endif(XCODE)
 
-	target_include_directories(cef-isolation PRIVATE 
+	target_include_directories(cef-isolation PRIVATE
 		"cef-isolation" 
 		"shared"
 		"shared-apple")
-	
+
 	target_include_directories_system(cef-isolation PUBLIC ${CEF_INCLUDE_DIR})
-	
+
 	target_link_libraries(cef-isolation
 		${CEF_LIBRARIES}
 		${APPKIT_FRAMEWORK}
@@ -216,7 +205,6 @@ target_link_libraries(cef-bootstrap
 	${CEF_LIBRARIES})
 
 if (APPLE)
-
 	set_target_properties(cef-isolation PROPERTIES
 		OUTPUT_NAME "CEF"
 		MACOSX_BUNDLE TRUE
@@ -241,7 +229,7 @@ if (APPLE)
 	add_custom_command(TARGET cef-bootstrap POST_BUILD
 		# Remember if you change this but don't cause a recompile it will not rename it successfully
 		COMMAND install_name_tool -change "@executable_path/Chromium Embedded Framework" "@rpath/Chromium Embedded Framework.framework/Chromium Embedded Framework" "$<TARGET_FILE:cef-bootstrap>"
-		
+
 		# Disable taskbar visibility
 		COMMAND defaults write "$<TARGET_FILE_DIR:cef-bootstrap>/../Info.plist" "LSUIElement" true)
 
@@ -259,13 +247,15 @@ if (APPLE)
 		COMMAND rm -rf "$<TARGET_FILE_DIR:cef-isolation>/../Frameworks/CEF Helper.app"
 		COMMAND cp -Rf "$<TARGET_FILE_DIR:cef-bootstrap>/../../../CEF Helper.app" "$<TARGET_FILE_DIR:cef-isolation>/../Frameworks"
 		COMMAND "BUILT_PRODUCTS_DIR=$<TARGET_FILE_DIR:cef-isolation>/../../.." "CONTENTS_FOLDER_PATH=CEF.app/Contents" "${CEF_ROOT_DIR}/tools/make_more_helpers.sh" "Frameworks" "CEF")
+endif()
 
-endif(APPLE)
+# ---------------------------------------------------------------------------
 
 if(APPLE)
-	install_obs_plugin_with_data(obs-browser data)
-	install_obs_plugin_bundle(cef-isolation "CEF.app")
-else(APPLE)
-	install_obs_plugin_with_data(obs-browser data)
-	install_obs_plugin(cef-bootstrap)
-endif(APPLE)
+	install_external_plugin_with_data(obs-browser data)
+	# TODO: Replace with path to bundle (via cmake variable or whatever)
+	install_external_plugin_bundle(cef-isolation "CEF.app")
+else()
+	install_external_plugin_with_data(obs-browser data)
+	install_external_plugin_additional(obs-browser cef-bootstrap)
+endif()
