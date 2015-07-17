@@ -54,5 +54,3 @@
 - (void)sendKeyClick:(int) browserIdentifier
 		event:(bycopy ObsKeyEventBridge *)event keyUp:(BOOL)keyUp;
 @end
-
-

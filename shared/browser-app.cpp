@@ -32,4 +32,3 @@ void BrowserApp::OnRegisterCustomSchemes(
 {
 	registrar->AddCustomScheme("http", true, true, false);
 }
-
