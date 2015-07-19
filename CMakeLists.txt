@@ -10,6 +10,8 @@ include(BSUtils)
 find_package(Libobs REQUIRED)
 find_package(CEF REQUIRED)
 
+option(COPY_DEPENDENCIES "Copies dependencies (CEF)" ON)
+
 if(APPLE)
 	find_library(COCOA_FRAMEWORK Cocoa)
 	find_library(APPKIT_FRAMEWORK AppKit)
@@ -257,4 +259,28 @@ if(APPLE)
 else()
 	install_external_plugin_with_data(obs-browser data)
 	install_external_plugin_additional(obs-browser cef-bootstrap)
+
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		set(_bit_suffix "64bit")
+	else()
+		set(_bit_suffix "32bit")
+	endif()
+
+	if(COPY_DEPENDENCIES)
+		add_custom_command(TARGET obs-browser POST_BUILD
+			COMMAND "${CMAKE_COMMAND}"
+				"-DSRC_DIR=${CEF_ROOT_DIR}/Resources"
+				"-DDST_DIR=${EXTERNAL_PLUGIN_OUTPUT_DIR}/$<CONFIGURATION>/obs-browser/bin/${_bit_suffix}"
+				-P "${CMAKE_SOURCE_DIR}/copy-resources.cmake"
+			VERBATIM)
+
+		if(WIN32)
+			add_custom_command(TARGET obs-browser POST_BUILD
+				COMMAND "${CMAKE_COMMAND}"
+				"-DSRC_DIR=${CEF_ROOT_DIR}/${CEFBuildType}"
+					"-DDST_DIR=${EXTERNAL_PLUGIN_OUTPUT_DIR}/$<CONFIGURATION>/obs-browser/bin/${_bit_suffix}"
+					-P "${CMAKE_SOURCE_DIR}/copy-windows-binaries.cmake"
+				VERBATIM)
+		endif()
+	endif()
 endif()
