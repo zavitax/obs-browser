@@ -421,6 +421,14 @@ void BrowserSource::Update(obs_data_t *settings)
 #endif
 		}
 
+#if ENABLE_LOCAL_FILE_URL_SCHEME
+		if (n_url.substr(0, 16) == "http://absolute/") {
+			/* Replace http://absolute/ URLs with file://
+			 * URLs if file:// URLs are enabled */
+			n_url = "file:///" + n_url.substr(16);
+		}
+#endif
+
 		if (n_is_local == is_local && n_width == width &&
 		    n_height == height && n_fps_custom == fps_custom &&
 		    n_fps == fps && n_shutdown == shutdown_on_invisible &&
